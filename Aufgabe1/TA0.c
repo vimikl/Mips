@@ -62,7 +62,7 @@ __interrupt Void TIMER0_A1_ISR(Void) {
     * Der Inhalt der ISR ist zu implementieren
     */
 
-   if ((*blink_muster >> muster_idx) & 1)  {
+   if (*blink_muster & (1 << muster_idx)) {
        SETBIT(P1OUT, BIT2);
    } else {
        CLRBIT(P1OUT, BIT2);
