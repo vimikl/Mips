@@ -47,7 +47,7 @@ LOCAL Void GPIO_init(Void) {
    //                   Port2       Port1
    //               Bit 76543210    76543210
    PAOUT  = VAL_16BIT(0b00000000, 0b00000000); // clear all outputs
-   PADIR  = VAL_16BIT(0b10000000, 0b00000100); // direction, set outputs
+   PADIR  = VAL_16BIT(0b10000100, 0b00000100); // direction, set outputs
    PAIFG  = VAL_16BIT(0b00000000, 0b00000000); // clear all interrupt flags
    PAIE   = VAL_16BIT(0b00000000, 0b00000000); // disable all GPIO interrupts
    PASEL0 = VAL_16BIT(0b00000000, 0b00000000);

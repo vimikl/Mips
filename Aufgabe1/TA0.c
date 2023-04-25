@@ -2,23 +2,42 @@
 #include "..\base.h"
 #include "TA0.h"
 
+LOCAL const ULong muster[6] = {
+   0b1111111100, // 10
+   0b111000, // 6
+   0b10, // 4
+   0b110000000000, // 12
+   0b11001100000000, // 14
+   0b110011001100000000 // 18
+};
+
+LOCAL ULong *blink_muster;
+
+LOCAL UChar muster_idx = 0;
+LOCAL UChar new_blink_muster = 0;
+LOCAL UChar switch_muster = 0;
+
 /*
- * Man soll sich eine geeignete Datenstruktur überlegen,
- * die eine laufzeiteffiziente Ausführung der ISR ermöglicht.
+ * Man soll sich eine geeignete Datenstruktur ï¿½berlegen,
+ * die eine laufzeiteffiziente Ausfï¿½hrung der ISR ermï¿½glicht.
  */
 
 GLOBAL Void set_blink_muster(UInt arg) {
 /*
  * Die Funktion muss so erweitert werden,
  * dass ein Blinkmuster selektiert wird.
- * Diese Lösung hängt stark von der gewählten
+ * Diese Lï¿½sung hï¿½ngt stark von der gewï¿½hlten
  * Datenstruktur ab.
  */
 
+    switch_muster = 1;
+    new_blink_muster = arg;
 }
 
 #pragma FUNC_ALWAYS_INLINE(TA0_init)
 GLOBAL Void TA0_init(Void) {
+
+   blink_muster = (ULong *) &muster[0];
 
    CLRBIT(TA0CTL, MC0 | MC1   // stop mode
                   | TAIE      // disable interrupt
@@ -27,7 +46,7 @@ GLOBAL Void TA0_init(Void) {
                   | CAP       // compare mode
                   | CCIE      // disable interrupt
                   | CCIFG);   // clear interrupt flag
-   TA0CCR0  = 0;              // set up Compare Register
+   TA0CCR0  = 2400-1;           // set up Compare Register
    TA0EX0   = TAIDEX_7;       // set up expansion register
    TA0CTL   = TASSEL__ACLK    // 614.4 kHz
             | MC__UP          // Up Mode
@@ -39,22 +58,24 @@ GLOBAL Void TA0_init(Void) {
 
 #pragma vector = TIMER0_A1_VECTOR
 __interrupt Void TIMER0_A1_ISR(Void) {
-
    /*
     * Der Inhalt der ISR ist zu implementieren
-    * const Datenelemente Button: pin, u8 BIT0, .., BIT7 (byte)
-    * var Counter cnt Int 0..5 statt u int
-    * if (--cnt < 0) 2 Befehle (neg flag )
-    * if (cnt++ > 5) 2 Befehle + compare mit 5
-    * counter runterzählen effizienters
-    * var State enum S0, S1 (compiler sucht passenden datentyp für 0, 1)
-    * const event TEvent Event_Btn1
-    * const Port Adresse *u8 (char *) & P1IN
-    *
-    * 2structs für var und const
-    * später konstante tabelle tabconstbuttons
-    * musterlösung hat ram=stack:32B,data:20B;fram=prg:528B,const:80B
-    * structs reihenfolge größter datentyp >> kleinster datentyp
     */
 
+   if ((*blink_muster >> muster_idx) & 1)  {
+       SETBIT(P1OUT, BIT2);
+   } else {
+       CLRBIT(P1OUT, BIT2);
+   }
+
+   if (!(*blink_muster >> ++muster_idx)) {
+      muster_idx = 0;
+      if (switch_muster) {
+          blink_muster = (ULong *) &muster[new_blink_muster];
+          switch_muster = 0;
+      }
+   }
+
+   CLRBIT(TA0CTL, TAIFG);    // clear interrupt flag
+      __low_power_mode_off_on_exit(); // restore Active Mode on return
 }
