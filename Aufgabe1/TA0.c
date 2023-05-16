@@ -3,18 +3,30 @@
 #include "TA0.h"
 
 LOCAL const ULong muster[6] = {
-   0b1111111100, // 10
+   0b1111111100, // 10 
    0b111000, // 6
-   0b10, // 4
+   0b10, // 2
    0b110000000000, // 12
    0b11001100000000, // 14
    0b110011001100000000 // 18
 };
 
-LOCAL ULong *blink_muster;
+LOCAL const Int muster_size[6] = {
+   10,
+   6,
+   2,
+   12,
+   14,
+   18
+};
 
-LOCAL UChar muster_idx = 0;
-LOCAL UChar new_blink_muster = 0;
+LOCAL Int muster_idx;
+
+LOCAL ULong *blink_muster;
+LOCAL Int *blink_muster_size;
+
+LOCAL UChar new_blink_muster;
+
 LOCAL UChar switch_muster = 0;
 
 /*
@@ -30,16 +42,18 @@ GLOBAL Void set_blink_muster(UInt arg) {
  * Datenstruktur ab.
  */
 
-    switch_muster = 1;
     new_blink_muster = arg;
+    switch_muster = 1;
 }
 
 #pragma FUNC_ALWAYS_INLINE(TA0_init)
 GLOBAL Void TA0_init(Void) {
 
    blink_muster = (ULong *) &muster[0];
-
-   CLRBIT(TA0CTL, MC0 | MC1   // stop mode
+   blink_muster_size = (Int *) &muster_size[0];
+   muster_idx = *blink_muster_size;
+   
+   CLRBIT(TA0CTL, MC0 | MC1   // stop mode   
                   | TAIE      // disable interrupt
                   | TAIFG);   // clear interrupt flag
    CLRBIT(TA0CCTL0, CM1 | CM0 // no capture mode
@@ -68,12 +82,13 @@ __interrupt Void TIMER0_A1_ISR(Void) {
        CLRBIT(P1OUT, BIT2);
    }
 
-   if (!(*blink_muster >> ++muster_idx)) {
-      muster_idx = 0;
+   if (--muster_idx < 0) {
       if (switch_muster) {
           blink_muster = (ULong *) &muster[new_blink_muster];
+          blink_muster_size = (Int *) &muster_size[new_blink_muster];
           switch_muster = 0;
       }
+      muster_idx = *blink_muster_size;
    }
 
    CLRBIT(TA0CTL, TAIFG);    // clear interrupt flag
