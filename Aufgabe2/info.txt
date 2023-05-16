@@ -1,0 +1,16 @@
+handler buttons, zahl inkrementieren , anzeige aktualisieren
+btn1 toggle inc and dec
+default incr init with 0000
+const basis zahlensystem
+digitaltechnik vorlesungsunterlagen schaltungen incr decr
+
+3. handler (folie 74) statemachine, reihenfolge beliebig wenn alles funktioniert
+schleifen in init() zulaessig, in main() nicht
+
+
+...spi aus beispiel übernehen
+...handler implementieren
+
+...compareRegister von 96 auf 2 oder anderen niedrigen wert setzen danach wieder auf 96 stelen bzw. 20ms pausieren
+... handler aus 1. beispiel implementierung ?
+... wenn system träge wird bei der anzeige, geschw. erhöhen

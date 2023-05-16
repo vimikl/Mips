@@ -2,7 +2,7 @@
 #include "..\base.h"
 #include "event.h"
 #include "TA0.h"
-#include "TA1.h"
+#include "UCA1.h"
 
 GLOBAL Int _system_pre_init(Void) {
    // stop watchdog timer
@@ -39,19 +39,18 @@ LOCAL Void CS_init(Void) {
 
 #pragma FUNC_ALWAYS_INLINE(GPIO_init)
 LOCAL Void GPIO_init(Void) {
-   // Port 2: Pin 7 => output, LED1
    // Port 1: Pin 2 => output, LED2
-   // Port 1: Pin 0 => input,  BTN1
-   // Port 1: Pin 1 => input,  BTN2
+   // Port 2: Pin 3 => output, SPI.CS, idle High
+   // Port 2: Pin 4, 5 and 6 => SPI
 
    //                   Port2       Port1
    //               Bit 76543210    76543210
    PAOUT  = VAL_16BIT(0b00000000, 0b00000000); // clear all outputs
-   PADIR  = VAL_16BIT(0b10000100, 0b00000100); // direction, set outputs
+   PADIR  = VAL_16BIT(0b00001000, 0b00000100); // direction, set outputs
    PAIFG  = VAL_16BIT(0b00000000, 0b00000000); // clear all interrupt flags
    PAIE   = VAL_16BIT(0b00000000, 0b00000000); // disable all GPIO interrupts
    PASEL0 = VAL_16BIT(0b00000000, 0b00000000);
-   PASEL1 = VAL_16BIT(0b00000000, 0b00000000);
+   PASEL1 = VAL_16BIT(0b01110000, 0b00000000);
    PAREN  = VAL_16BIT(0b00000000, 0b00000000); // without pull up
 
    //                   Port4       Port3
@@ -63,34 +62,35 @@ LOCAL Void GPIO_init(Void) {
    PBSEL0 = VAL_16BIT(0b00000000, 0b00000000);
    PBSEL1 = VAL_16BIT(0b00000000, 0b00000000);
    PBREN  = VAL_16BIT(0b00000000, 0b00000000); // without pull up
+}
 
+LOCAL Void Handler1(Void) {
+   UInt i;
+   if (Event_tst(EVENT_UPDATE)) {
+      Event_clr(EVENT_UPDATE);
+      UInt tmp = counter;
+      for(i=1; i LE 4; i++) {
+         UChar ch = 0x0F BAND tmp;
+         ch += '0';
+         UCA1_emit(i, ch);
+         tmp >>= 4;
+      }
+   }
 }
 
 GLOBAL Void main(Void) {
-   Int cnt = MUSTER1;
-
    CS_init();     // set up Clock System
    GPIO_init();   // set up Ports
    Event_init();
-   TA0_init();    // set up Timer A0
-   TA1_init();    // set up Timer A1
+   UCA1_init();
+   TA0_init();
 
    while(TRUE) {
       Event_wait();
-
-      if (Event_tst(EVENT_BTN2)) {
-         Event_clr(EVENT_BTN2);
-         if (++cnt GT MUSTER6) {
-            cnt = MUSTER1;
-         }
-         set_blink_muster(cnt);
-      }
-      if (Event_tst(EVENT_BTN1)) {
-         Event_clr(EVENT_BTN1);
-         TGLBIT(P2OUT, BIT7);
-      }
+      Handler1();
       if (Event_err()) {
          SETBIT(P1OUT, BIT2); // LED on
       }
    }
 }
+
